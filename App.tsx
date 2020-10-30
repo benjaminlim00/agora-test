@@ -6,20 +6,24 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import 'react-native-get-random-values';
+import { customAlphabet } from 'nanoid';
 import RtcEngine, {
   ChannelProfile,
   ClientRole,
+  ErrorCode,
   RtcLocalView,
   RtcRemoteView,
+  VideoFrameRate,
   VideoRenderMode,
+  WarningCode,
 } from 'react-native-agora';
+import axios from 'axios';
 import requestCameraAndAudioPermission from './components/PermissionsAndroid';
 import styles from './components/Style';
 
 //use env
 const APP_ID = '4105bde1761842e7afded0067450362f';
-const TOKEN =
-  '0064105bde1761842e7afded0067450362fIACunkUiASZONmkSBR8h8MslnruwQECakS+SMFqw68A4HAJkFYoAAAAAEADnMOtSFEqcXwEAAQAUSpxf';
 const CHANNEL_NAME = 'channel-x';
 
 export default function App() {
@@ -36,6 +40,9 @@ export default function App() {
   const [isAudience, setIsAudience] = useState(false);
   const [isHost, setIsHost] = useState(false);
 
+  const [myToken, setMyToken] = useState<string | null>(null);
+  const [myUID, setMyUID] = useState<number | null>(null);
+
   /**
    * @name init
    * @description Function to initialize the Rtc Engine, attach event listeners and actions
@@ -43,6 +50,8 @@ export default function App() {
   const init = async () => {
     const _engine = await RtcEngine.create(APP_ID);
     setEngine(_engine);
+
+    _engine.setVideoEncoderConfiguration({ frameRate: VideoFrameRate.Fps30 });
     await _engine.enableVideo();
 
     //LiveBroadcasting profile
@@ -54,11 +63,11 @@ export default function App() {
     // setIsAudience(true);
 
     _engine.addListener('Warning', (warn) => {
-      console.log('Warning', warn);
+      console.log(`Warning ${warn}: `, WarningCode[warn]);
     });
 
     _engine.addListener('Error', (err) => {
-      console.log('Error', err);
+      console.log(`Error ${err}: `, ErrorCode[err]);
     });
 
     _engine.addListener('UserJoined', (uid, elapsed) => {
@@ -79,6 +88,15 @@ export default function App() {
       console.log('JoinChannelSuccess', channel, uid, elapsed);
       setJoinSucceed(true);
     });
+
+    // // show mute icon whenever a remote has muted their mic
+    // client.on('mute-audio', function (evt) {
+    //   console.log('Mute Audio for: ' + evt.uid);
+    // });
+
+    // client.on('unmute-audio', function (evt) {
+    //   console.log('Unmute Audio for: ' + evt.uid);
+    // });
   };
 
   useEffect(() => {
@@ -88,7 +106,40 @@ export default function App() {
         console.log('requested!');
       });
     }
+  }, []);
 
+  useEffect(() => {
+    const nanoid = customAlphabet('1234567890', 10);
+    const _myUID = parseInt(nanoid());
+    setMyUID(_myUID);
+
+    getTokenFromServer(_myUID);
+  }, []);
+
+  const getTokenFromServer = async (myUID) => {
+    //if not working: edit manifest - https://github.com/facebook/react-native/issues/24039
+    axios
+      .get(
+        `https://backstage-agora-token-server.herokuapp.com/access_token?channel=${CHANNEL_NAME}&uid=${myUID}`,
+        {
+          headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+          },
+        },
+      )
+      .then((res) => {
+        // console.log('first');
+        // console.log('Token: ', res.data.token);
+        // console.log('UID: ', myUID);
+        setMyToken(res.data.token);
+      })
+      .catch((err) => {
+        console.log('Error fetching token: ' + err);
+      });
+  };
+
+  useEffect(() => {
     init();
   }, []);
 
@@ -97,15 +148,22 @@ export default function App() {
    * @description Function to start the call
    */
   const startCall = async () => {
-    // Join Channel using null token and channel name
-    engine &&
-      (await engine.joinChannel(
-        TOKEN,
-        CHANNEL_NAME,
-        null, //optional info
-        0, //optional uid - If you set uid as 0, the SDK assigns a user ID for
-        //the local user and returns it in the JoinChannelSuccess callback.
-      ));
+    // console.log('second');
+    // console.log('Token: ', myToken);
+    // console.log('UID: ', myUID);
+    if (myUID) {
+      // Join Channel using null token and channel name
+      engine &&
+        (await engine.joinChannel(
+          myToken,
+          CHANNEL_NAME,
+          null, //optional info
+          myUID, //optional uid - If you set uid as 0, the SDK assigns a user ID for
+          //the local user and returns it in the JoinChannelSuccess callback.
+        ));
+    } else {
+      console.log('myUID not set yet!');
+    }
   };
 
   /**
@@ -121,7 +179,6 @@ export default function App() {
   };
 
   console.log('ben side', peerIds); //test this val
-
   return (
     <View style={styles.max}>
       <View style={styles.max}>
