@@ -33,6 +33,9 @@ export default function App() {
   const [peerIds, setPeerIds] = useState<number[]>([]);
   const [engine, setEngine] = useState<RtcEngine | null>(null);
 
+  const [isAudience, setIsAudience] = useState(false);
+  const [isHost, setIsHost] = useState(false);
+
   /**
    * @name init
    * @description Function to initialize the Rtc Engine, attach event listeners and actions
@@ -44,7 +47,11 @@ export default function App() {
 
     //LiveBroadcasting profile
     _engine.setChannelProfile(ChannelProfile.LiveBroadcasting);
-    _engine.setClientRole(ClientRole.Broadcaster); //set as audience for other phone
+    _engine.setClientRole(ClientRole.Broadcaster);
+    setIsHost(true);
+
+    // _engine.setClientRole(ClientRole.Audience);
+    // setIsAudience(true);
 
     _engine.addListener('Warning', (warn) => {
       console.log('Warning', warn);
@@ -113,42 +120,7 @@ export default function App() {
     }
   };
 
-  const _renderVideos = () => {
-    return joinSucceed ? (
-      <View style={styles.fullView}>
-        <RtcLocalView.SurfaceView
-          style={styles.max}
-          channelId={CHANNEL_NAME}
-          renderMode={VideoRenderMode.Hidden}
-        />
-        {_renderRemoteVideos()}
-      </View>
-    ) : null;
-  };
-
-  const _renderRemoteVideos = () => {
-    return (
-      <ScrollView
-        style={styles.remoteContainer}
-        contentContainerStyle={{ paddingHorizontal: 2.5 }}
-        horizontal={true}
-      >
-        {peerIds.map((value, index, array) => {
-          return (
-            <RtcRemoteView.SurfaceView
-              style={styles.remote}
-              uid={value}
-              channelId={CHANNEL_NAME}
-              renderMode={VideoRenderMode.Hidden}
-              zOrderMediaOverlay={true}
-            />
-          );
-        })}
-      </ScrollView>
-    );
-  };
-
-  console.log(peerIds); //test this val
+  console.log('ben side', peerIds); //test this val
 
   return (
     <View style={styles.max}>
@@ -161,7 +133,37 @@ export default function App() {
             <Text style={styles.buttonText}> End Call </Text>
           </TouchableOpacity>
         </View>
-        {_renderVideos()}
+        {joinSucceed && (
+          <View style={styles.fullView}>
+            {isHost && (
+              <RtcLocalView.SurfaceView
+                style={styles.max}
+                channelId={CHANNEL_NAME}
+                renderMode={VideoRenderMode.Hidden}
+              />
+            )}
+
+            {isAudience && (
+              <ScrollView
+                style={styles.remoteContainer}
+                contentContainerStyle={{ paddingHorizontal: 2.5 }}
+                horizontal={true}
+              >
+                {peerIds.map((value, index, array) => {
+                  return (
+                    <RtcRemoteView.SurfaceView
+                      style={styles.remote}
+                      uid={value}
+                      channelId={CHANNEL_NAME}
+                      renderMode={VideoRenderMode.Hidden}
+                      zOrderMediaOverlay={true}
+                    />
+                  );
+                })}
+              </ScrollView>
+            )}
+          </View>
+        )}
       </View>
     </View>
   );
