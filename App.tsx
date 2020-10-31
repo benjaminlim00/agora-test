@@ -24,7 +24,7 @@ import styles from './components/Style';
 
 //use env
 const APP_ID = '4105bde1761842e7afded0067450362f';
-const CHANNEL_NAME = 'channel-x';
+const CHANNEL_NAME = 'channel123';
 
 export default function App() {
   /**
@@ -108,19 +108,20 @@ export default function App() {
     }
   }, []);
 
-  useEffect(() => {
+  const generateToken = () => {
     const nanoid = customAlphabet('1234567890', 10);
     const _myUID = parseInt(nanoid());
     setMyUID(_myUID);
 
     getTokenFromServer(_myUID);
-  }, []);
+  };
 
   const getTokenFromServer = async (myUID) => {
     //if not working: edit manifest - https://github.com/facebook/react-native/issues/24039
     axios
       .get(
-        `https://backstage-agora-token-server.herokuapp.com/access_token?channel=${CHANNEL_NAME}&uid=${myUID}`,
+        // `https://backstage-agora-token-server.herokuapp.com/access_token?channel=${CHANNEL_NAME}&uid=${myUID}`,
+        `https://backstage-agora-token-server.herokuapp.com/access_token?channel=${CHANNEL_NAME}`,
         {
           headers: {
             Accept: 'application/json',
@@ -149,20 +150,21 @@ export default function App() {
    */
   const startCall = async () => {
     // console.log('second');
-    // console.log('Token: ', myToken);
-    // console.log('UID: ', myUID);
-    if (myUID) {
+    console.log('Token: ', myToken);
+    console.log('UID: ', myUID);
+    if (myUID && myToken) {
       // Join Channel using null token and channel name
       engine &&
         (await engine.joinChannel(
           myToken,
           CHANNEL_NAME,
           null, //optional info
-          myUID, //optional uid - If you set uid as 0, the SDK assigns a user ID for
+          0, //0 = no uid passed
+          // myUID, //optional uid - If you set uid as 0, the SDK assigns a user ID for
           //the local user and returns it in the JoinChannelSuccess callback.
         ));
     } else {
-      console.log('myUID not set yet!');
+      console.log('myToken not set yet!');
     }
   };
 
@@ -183,7 +185,15 @@ export default function App() {
     <View style={styles.max}>
       <View style={styles.max}>
         <View style={styles.buttonHolder}>
-          <TouchableOpacity onPress={startCall} style={styles.button}>
+          <TouchableOpacity onPress={generateToken} style={styles.button}>
+            <Text style={styles.buttonText}> Generate Token </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            disabled={!myToken}
+            onPress={startCall}
+            style={myToken ? styles.button : styles.disabledButton}
+          >
             <Text style={styles.buttonText}> Start Call </Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={endCall} style={styles.button}>

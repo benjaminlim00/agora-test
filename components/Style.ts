@@ -22,6 +22,12 @@ export default StyleSheet.create({
     backgroundColor: '#0093E9',
     borderRadius: 25,
   },
+  disabledButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    backgroundColor: 'red',
+    borderRadius: 25,
+  },
   buttonText: {
     color: '#fff',
   },
