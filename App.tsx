@@ -9,12 +9,16 @@ import {
 import 'react-native-get-random-values';
 import { customAlphabet } from 'nanoid';
 import RtcEngine, {
+  BitRate,
   ChannelProfile,
   ClientRole,
+  DegradationPreference,
   ErrorCode,
   RtcLocalView,
   RtcRemoteView,
+  VideoDimensions,
   VideoFrameRate,
+  VideoOutputOrientationMode,
   VideoRenderMode,
   WarningCode,
 } from 'react-native-agora';
@@ -34,6 +38,7 @@ export default function App() {
    * @property joinSucceed State variable for storing success
    */
   const [joinSucceed, setJoinSucceed] = useState(false);
+  //should only be seen on audience side, id of the host
   const [peerIds, setPeerIds] = useState<number[]>([]);
   const [engine, setEngine] = useState<RtcEngine | null>(null);
 
@@ -51,16 +56,22 @@ export default function App() {
     const _engine = await RtcEngine.create(APP_ID);
     setEngine(_engine);
 
-    _engine.setVideoEncoderConfiguration({ frameRate: VideoFrameRate.Fps30 });
+    _engine.setVideoEncoderConfiguration({
+      dimensions: new VideoDimensions(720, 1280), //experiment
+      frameRate: VideoFrameRate.Fps60,
+      bitrate: BitRate.Standard,
+      orientationMode: VideoOutputOrientationMode.FixedPortrait,
+      degradationPrefer: DegradationPreference.MaintainQuality,
+    });
     await _engine.enableVideo();
 
     //LiveBroadcasting profile
     _engine.setChannelProfile(ChannelProfile.LiveBroadcasting);
-    _engine.setClientRole(ClientRole.Broadcaster);
-    setIsHost(true);
+    // _engine.setClientRole(ClientRole.Broadcaster);
+    // setIsHost(true);
 
-    // _engine.setClientRole(ClientRole.Audience);
-    // setIsAudience(true);
+    _engine.setClientRole(ClientRole.Audience);
+    setIsAudience(true);
 
     _engine.addListener('Warning', (warn) => {
       console.log(`Warning ${warn}: `, WarningCode[warn]);
@@ -89,14 +100,7 @@ export default function App() {
       setJoinSucceed(true);
     });
 
-    // // show mute icon whenever a remote has muted their mic
-    // client.on('mute-audio', function (evt) {
-    //   console.log('Mute Audio for: ' + evt.uid);
-    // });
-
-    // client.on('unmute-audio', function (evt) {
-    //   console.log('Unmute Audio for: ' + evt.uid);
-    // });
+    // toggle mute icon whenever a remote has muted their mic
   };
 
   useEffect(() => {
@@ -210,16 +214,12 @@ export default function App() {
               />
             )}
 
-            {isAudience && (
-              <ScrollView
-                style={styles.remoteContainer}
-                contentContainerStyle={{ paddingHorizontal: 2.5 }}
-                horizontal={true}
-              >
+            {isAudience && peerIds.length === 1 && (
+              <>
                 {peerIds.map((value, index, array) => {
                   return (
                     <RtcRemoteView.SurfaceView
-                      style={styles.remote}
+                      style={styles.max}
                       uid={value}
                       channelId={CHANNEL_NAME}
                       renderMode={VideoRenderMode.Hidden}
@@ -227,7 +227,7 @@ export default function App() {
                     />
                   );
                 })}
-              </ScrollView>
+              </>
             )}
           </View>
         )}

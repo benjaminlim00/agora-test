@@ -35,15 +35,4 @@ export default StyleSheet.create({
     width: dimensions.width,
     height: dimensions.height - 100,
   },
-  remoteContainer: {
-    width: '100%',
-    height: 150,
-    position: 'absolute',
-    top: 5,
-  },
-  remote: {
-    width: 150,
-    height: 150,
-    marginHorizontal: 2.5,
-  },
 });
