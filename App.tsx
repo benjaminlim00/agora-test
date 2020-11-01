@@ -1,13 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import {
-  Platform,
-  ScrollView,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
-import 'react-native-get-random-values';
-import { customAlphabet } from 'nanoid';
+import { Platform, Text, TouchableOpacity, View } from 'react-native';
 import RtcEngine, {
   BitRate,
   ChannelProfile,
@@ -37,8 +29,7 @@ export default function App() {
    * @property channelName Channel Name for the current session
    * @property joinSucceed State variable for storing success
    */
-  const [joinSucceed, setJoinSucceed] = useState(false);
-  //should only be seen on audience side, id of the host
+  const [joinSucceed, setJoinSucceed] = useState(false); //should only be seen on audience side, id of the host
   const [peerIds, setPeerIds] = useState<number[]>([]);
   const [engine, setEngine] = useState<RtcEngine | null>(null);
 
@@ -46,7 +37,6 @@ export default function App() {
   const [isHost, setIsHost] = useState(false);
 
   const [myToken, setMyToken] = useState<string | null>(null);
-  const [myUID, setMyUID] = useState<number | null>(null);
 
   /**
    * @name init
@@ -58,7 +48,7 @@ export default function App() {
 
     _engine.setVideoEncoderConfiguration({
       dimensions: new VideoDimensions(720, 1280), //experiment
-      frameRate: VideoFrameRate.Fps60,
+      frameRate: VideoFrameRate.Fps30,
       bitrate: BitRate.Standard,
       orientationMode: VideoOutputOrientationMode.FixedPortrait,
       degradationPrefer: DegradationPreference.MaintainQuality,
@@ -67,6 +57,7 @@ export default function App() {
 
     //LiveBroadcasting profile
     _engine.setChannelProfile(ChannelProfile.LiveBroadcasting);
+
     // _engine.setClientRole(ClientRole.Broadcaster);
     // setIsHost(true);
 
@@ -113,18 +104,13 @@ export default function App() {
   }, []);
 
   const generateToken = () => {
-    const nanoid = customAlphabet('1234567890', 10);
-    const _myUID = parseInt(nanoid());
-    setMyUID(_myUID);
-
-    getTokenFromServer(_myUID);
+    getTokenFromServer();
   };
 
-  const getTokenFromServer = async (myUID) => {
-    //if not working: edit manifest - https://github.com/facebook/react-native/issues/24039
+  const getTokenFromServer = async () => {
+    //if fetch not working: edit manifest - https://github.com/facebook/react-native/issues/24039
     axios
       .get(
-        // `https://backstage-agora-token-server.herokuapp.com/access_token?channel=${CHANNEL_NAME}&uid=${myUID}`,
         `https://backstage-agora-token-server.herokuapp.com/access_token?channel=${CHANNEL_NAME}`,
         {
           headers: {
@@ -134,9 +120,6 @@ export default function App() {
         },
       )
       .then((res) => {
-        // console.log('first');
-        // console.log('Token: ', res.data.token);
-        // console.log('UID: ', myUID);
         setMyToken(res.data.token);
       })
       .catch((err) => {
@@ -153,10 +136,7 @@ export default function App() {
    * @description Function to start the call
    */
   const startCall = async () => {
-    // console.log('second');
-    console.log('Token: ', myToken);
-    console.log('UID: ', myUID);
-    if (myUID && myToken) {
+    if (myToken) {
       // Join Channel using null token and channel name
       engine &&
         (await engine.joinChannel(
@@ -164,7 +144,7 @@ export default function App() {
           CHANNEL_NAME,
           null, //optional info
           0, //0 = no uid passed
-          // myUID, //optional uid - If you set uid as 0, the SDK assigns a user ID for
+          // optional uid - If you set uid as 0, the SDK assigns a user ID for
           //the local user and returns it in the JoinChannelSuccess callback.
         ));
     } else {
@@ -184,7 +164,6 @@ export default function App() {
     }
   };
 
-  console.log('ben side', peerIds); //test this val
   return (
     <View style={styles.max}>
       <View style={styles.max}>
